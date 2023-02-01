@@ -1,6 +1,8 @@
 const std = @import("std");
 const net = std.net;
 
+const client = @import("client.zig");
+
 pub const Server = struct {
     address: net.Address,
     streamServer: net.StreamServer,
@@ -23,11 +25,14 @@ pub const Server = struct {
 
     pub fn listen(self: *Server) !void {
         try self.streamServer.listen(self.address);
-        std.log.info("Listening :{d}...", .{self.address.getPort()});
+        std.log.info("Listening {}...", .{self.address});
 
         while (true) {
-            var con = try self.streamServer.accept();
-            std.debug.print("{}\n", .{con});
+            var incomingClient = try self.allocator.create(client.Client);
+            incomingClient.* = client.Client{
+                .conn = try self.streamServer.accept(),
+                .handle_frame = async incomingClient.handle(),
+            };
         }
     }
 };
