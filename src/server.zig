@@ -2,20 +2,23 @@ const std = @import("std");
 const net = std.net;
 
 const client = @import("client.zig");
+const config = @import("config.zig");
 
 pub const Server = struct {
     address: net.Address,
     streamServer: net.StreamServer,
     allocator: std.mem.Allocator,
+    config: config.Config,
 
-    pub fn init(name: []const u8, port: u16, allocator: std.mem.Allocator) Server {
-        var address = net.Address.parseIp(name, port) catch unreachable;
+    pub fn init(serverConfig: config.Config, allocator: std.mem.Allocator) Server {
+        var address = net.Address.parseIp(serverConfig.listen.address, serverConfig.listen.port) catch unreachable;
         var streamServer = net.StreamServer.init(.{});
 
         return .{
             .address = address,
             .streamServer = streamServer,
             .allocator = allocator,
+            .config = serverConfig,
         };
     }
 
