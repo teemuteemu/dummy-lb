@@ -33,25 +33,29 @@ pub const Server = struct {
         std.log.info("Listening {}...", .{self.address});
 
         while (true) {
-            var incomingClient = try self.allocator.create(client.Client);
             var upstream = self.config.upstream[self.rrIndex];
 
-            std.log.info("Serving to upstream {s}:{d}...", .{ upstream.address, upstream.port });
+            self.rrIndex = if (self.rrIndex == self.config.upstream.len - 1)
+                0
+            else
+                self.rrIndex + 1;
 
-            var inConnection = try self.streamServer.accept();
             var upstreamAddress = std.net.Address.parseIp(upstream.address, upstream.port) catch unreachable;
-            var outConnection = try std.net.tcpConnectToAddress(upstreamAddress);
+            var inConnection = try self.streamServer.accept();
+            var outConnection = std.net.tcpConnectToAddress(upstreamAddress) catch {
+                std.log.warn("Upstream {s}:{d} is not reachable", .{ upstream.address, upstream.port });
+                inConnection.stream.close();
+                continue;
+            };
+
+            var incomingClient = try self.allocator.create(client.Client);
+            std.log.info("Serving to upstream {s}:{d}...", .{ upstream.address, upstream.port });
 
             incomingClient.* = client.Client{
                 .inConnection = inConnection,
                 .outConnection = outConnection,
                 .handle_frame = async incomingClient.handle(),
             };
-
-            self.rrIndex = if (self.rrIndex == self.config.upstream.len - 1)
-                0
-            else
-                self.rrIndex + 1;
         }
     }
 };
