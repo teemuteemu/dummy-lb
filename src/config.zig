@@ -1,14 +1,16 @@
 const std = @import("std");
 
+pub const Upstream = struct {
+    address: []const u8,
+    port: u16,
+};
+
 pub const Config = struct {
     listen: struct {
         address: []const u8,
         port: u16,
     },
-    upstream: []struct {
-        address: []const u8,
-        port: u16,
-    },
+    upstream: []Upstream,
 
     pub fn init(jsonStr: []const u8, allocator: std.mem.Allocator) !Config {
         var stream = std.json.TokenStream.init(jsonStr);

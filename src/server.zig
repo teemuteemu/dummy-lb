@@ -9,6 +9,7 @@ pub const Server = struct {
     streamServer: net.StreamServer,
     allocator: std.mem.Allocator,
     config: config.Config,
+    rrIndex: u16,
 
     pub fn init(serverConfig: config.Config, allocator: std.mem.Allocator) Server {
         var address = net.Address.parseIp(serverConfig.listen.address, serverConfig.listen.port) catch unreachable;
@@ -19,6 +20,7 @@ pub const Server = struct {
             .streamServer = streamServer,
             .allocator = allocator,
             .config = serverConfig,
+            .rrIndex = 0,
         };
     }
 
@@ -32,10 +34,24 @@ pub const Server = struct {
 
         while (true) {
             var incomingClient = try self.allocator.create(client.Client);
+            var upstream = self.config.upstream[self.rrIndex];
+
+            std.log.info("Serving to upstream {s}:{d}...", .{ upstream.address, upstream.port });
+
+            var inConnection = try self.streamServer.accept();
+            var upstreamAddress = std.net.Address.parseIp(upstream.address, upstream.port) catch unreachable;
+            var outConnection = try std.net.tcpConnectToAddress(upstreamAddress);
+
             incomingClient.* = client.Client{
-                .conn = try self.streamServer.accept(),
+                .inConnection = inConnection,
+                .outConnection = outConnection,
                 .handle_frame = async incomingClient.handle(),
             };
+
+            self.rrIndex = if (self.rrIndex == self.config.upstream.len - 1)
+                0
+            else
+                self.rrIndex + 1;
         }
     }
 };

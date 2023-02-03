@@ -19,12 +19,12 @@ const testConfigStr =
     \\   },
     \\   "upstream": [
     \\     {
-    \\       "address": "192.168.0.1",
+    \\       "address": "127.0.0.1",
     \\       "port": 5700
     \\     },
     \\     {
-    \\       "address": "192.178.1.2",
-    \\       "port": 5432
+    \\       "address": "127.0.0.1",
+    \\       "port": 5800
     \\     }
     \\   ]
     \\ }
